@@ -1,0 +1,88 @@
+--* coding: Shift-jis *--
+--
+--  --------------------------------------
+--  Released under the Apache 2.0 License.
+--  Yuki Meguro
+--  --------------------------------------
+--
+--  --------------------------------------
+--  Author: Yuki Meguro
+--
+--  Description:
+--
+--      位置ﾚｼﾞ[x]の値を基準点[x]に設定します
+--
+--      引数1 = 基準点番号
+--      引数2 = 参照位置レジスタ番号
+--      引数3 = トレランス(基準点 +/- 許容値)
+--
+--      例) PERCH_KAREL(1, 2, 0.01)
+--            基準点1 に 位置レジ[2]の値をトレランス0.01で設定します
+--
+--  Dependancies: none
+--  --------------------------------------
+
+PROGRAM PERCH_KL
+%SYSTEM
+%NOLOCKGROUP
+%NOPAUSESHFT
+%NOPAUSE=ERROR+COMMAND+TPENABLE
+%COMMENT = 'v1.0'
+VAR
+    status: INTEGER
+
+    ROUTINE GetPrmInt(prm_no: INTEGER): INTEGER
+    VAR
+        int_value: INTEGER
+        trash_r: REAL
+        trash_s: STRING[1]
+    BEGIN
+        GET_TPE_PRM(prm_no, 1, int_value, trash_r, trash_s, status)
+        IF status=0 THEN
+            RETURN(int_value)
+        ELSE
+            RETURN(0)
+        ENDIF
+    END GetPrmInt
+
+    ROUTINE GetPrmReal(prm_no: INTEGER): REAL
+    VAR
+        data_type: INTEGER
+        int_value: INTEGER
+        real_value: REAL
+        trash_s: STRING[1]
+    BEGIN
+        GET_TPE_PRM(prm_no, data_type, int_value, real_value, trash_s, status)
+        IF (status=0) AND (data_type=1) THEN
+            real_value=int_value
+            RETURN(real_value)
+        ELSE
+            IF (status=0) AND (data_type=2) THEN
+                RETURN(real_value)
+            ELSE
+                RETURN(0)
+            ENDIF
+        ENDIF
+    END GetPrmReal
+
+    ROUTINE SET_DATA(target_no: INTEGER; reg_no: INTEGER; gap: REAL)
+    VAR
+        i: INTEGER
+        tolerance: ARRAY[6] OF REAL
+        perch_pos: JOINTPOS IN GROUP[1]
+    BEGIN
+        FOR i = 1 TO 6 DO
+            tolerance[i]=gap
+        ENDFOR
+        perch_pos=GET_JPOS_REG(reg_no, status, 1)
+        IF status<>0 THEN
+            POST_ERR(status, '', 0, 2)
+        ELSE
+            SET_PERCH(perch_pos, tolerance, target_no)
+        ENDIF
+    END SET_DATA
+
+
+BEGIN
+    SET_DATA(GetPrmInt(1), GetPrmInt(2), GetPrmReal(3))
+END PERCH_KL
